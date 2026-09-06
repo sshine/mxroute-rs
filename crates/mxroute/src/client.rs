@@ -319,16 +319,6 @@ impl Client {
         }
     }
 
-    /// Sends a request and decodes the whole body, for the endpoints that answer without
-    /// the success envelope.
-    ///
-    /// Only the quota endpoints do this. Kept as a separate method rather than a fallback
-    /// inside [`send_json`](Self::send_json) so the exceptions are greppable and a body
-    /// that lost its envelope by accident still fails loudly.
-    pub(crate) async fn send_json_bare<T: DeserializeOwned>(&self, req: Req) -> Result<T> {
-        self.send(req).await?.decode()
-    }
-
     /// Sends a request and discards the body.
     ///
     /// Used by the writes whose success response the API documents without a body, where

@@ -78,19 +78,21 @@ async fn a_body_that_is_missing_its_envelope_fails_rather_than_being_guessed_at(
 }
 
 #[tokio::test]
-async fn the_quota_endpoints_decode_without_an_envelope() {
+async fn the_quota_endpoints_are_enveloped_like_everything_else() {
     let (server, client) = mock().await;
+    // The OpenAPI document declares these two unenveloped. A live run says otherwise, and
+    // this is the shape the server actually sends.
     mount(
         &server,
         "GET",
         "/quota",
-        ResponseTemplate::new(200).set_body_json(json!({
+        ResponseTemplate::new(200).set_body_json(ok(json!({
             "username": "johndoe",
             "total_used": 5_368_709_120u64,
             "total_limit": 10_737_418_240u64,
             "percent_used": 50.0,
             "updated_at": "2026-09-06T04:00:00Z",
-        })),
+        }))),
     )
     .await;
 

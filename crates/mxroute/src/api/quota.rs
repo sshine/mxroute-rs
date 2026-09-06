@@ -3,9 +3,10 @@
 //! Both endpoints report figures refreshed hourly, so a mailbox emptied a minute ago still
 //! shows its old size.
 //!
-//! These two are also the only endpoints in the API that answer without the
-//! `{"success": …, "data": …}` envelope everything else uses: their fields sit at the top
-//! level of the body.
+//! The OpenAPI document declares these two with their fields at the top level, unlike every
+//! other endpoint. It is wrong: the server sends the same `{"success": …, "data": …}`
+//! envelope here as everywhere else. A live test pins that, since the spec cannot be
+//! trusted on it.
 
 use chrono::{DateTime, Utc};
 use reqwest::Method;
@@ -125,14 +126,14 @@ impl<'a> QuotaApi<'a> {
     pub async fn account(&self) -> Result<Quota> {
         let url = self.client.url(&["quota"]);
         let req = self.client.request(Method::GET, url);
-        self.client.send_json_bare(req).await
+        self.client.send_json(req).await
     }
 
     /// `GET /quota/email` — disk usage per mailbox, largest first.
     pub async fn email(&self) -> Result<EmailUsage> {
         let url = self.client.url(&["quota", "email"]);
         let req = self.client.request(Method::GET, url);
-        self.client.send_json_bare(req).await
+        self.client.send_json(req).await
     }
 }
 
@@ -143,7 +144,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_quota_decodes_from_a_body_with_no_envelope() {
+    fn a_quota_decodes_its_data_member() {
         let quota: Quota = serde_json::from_str(
             r#"{"username": "johndoe", "total_used": 5368709120,
                 "total_limit": 10737418240, "percent_used": 50.0,

@@ -147,8 +147,9 @@ Also worth knowing:
   for DNS, then create the domain. Nothing reports whether propagation has finished.
 - Quota figures are recomputed hourly, so a mailbox emptied a minute ago still shows
   its old size.
-- `/quota` and `/quota/email` are the only endpoints that answer without the
-  `{"success": …, "data": …}` envelope.
+- The OpenAPI document declares `/quota` and `/quota/email` without the
+  `{"success": …, "data": …}` envelope. That is wrong; the server envelopes every
+  endpoint. Treat the spec as a starting point rather than an authority.
 
 ## Not covered
 

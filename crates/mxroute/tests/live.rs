@@ -42,6 +42,23 @@ fn scratch_domain() -> Option<String> {
         .filter(|d| !d.is_empty())
 }
 
+/// The scratch domain, checked to be on the account.
+///
+/// Naming a domain the account does not hold otherwise fails several tests deep with a
+/// bare `404`, which reads like a client bug rather than an unfinished setup. Adding a
+/// domain is a DNS round trip and a wait, so it cannot be done here.
+async fn scratch_domain_on_account(client: &Client) -> Option<String> {
+    let domain = scratch_domain()?;
+    let held = client.domains().list().await.expect("the account lists");
+    assert!(
+        held.contains(&domain),
+        "MXROUTE_TEST_DOMAIN is {domain:?}, which is not on this account (it holds {held:?}).\n\
+         Add it first: publish the TXT record from `verification_key`, wait for DNS, then\n\
+         create the domain. Or unset MXROUTE_TEST_DOMAIN to skip the tests that write."
+    );
+    Some(domain)
+}
+
 #[tokio::test]
 #[ignore = "talks to the real API"]
 async fn listing_domains_works() {
@@ -88,16 +105,17 @@ async fn the_verification_key_has_the_documented_shape() {
 }
 
 /// The spec declares `/quota` with its fields at the top level, unlike every other
-/// endpoint. If that is wrong, this is what reports it, and the fix is one call site.
+/// endpoint. A live run showed that is wrong — the server envelopes these too — so this
+/// now guards the correction rather than the claim.
 #[tokio::test]
 #[ignore = "talks to the real API"]
-async fn the_quota_endpoints_really_do_answer_without_an_envelope() {
+async fn the_quota_endpoints_are_enveloped_like_everything_else() {
     let client = client();
     let quota = client
         .quota()
         .account()
         .await
-        .expect("/quota decodes without the success envelope");
+        .expect("/quota decodes from its data member");
     println!(
         "{}: {} bytes used of {:?}",
         quota.username,
@@ -109,7 +127,7 @@ async fn the_quota_endpoints_really_do_answer_without_an_envelope() {
         .quota()
         .email()
         .await
-        .expect("/quota/email decodes without the success envelope");
+        .expect("/quota/email decodes from its data member");
     println!("{} mailbox(es) reported", email.accounts.len());
     // Documented as sorted largest first.
     let sizes: Vec<u64> = email.accounts.iter().map(|a| a.size_bytes).collect();
@@ -147,11 +165,11 @@ async fn every_response_carries_the_rate_limit_headers() {
 #[tokio::test]
 #[ignore = "talks to the real API"]
 async fn the_scratch_domains_settings_read_back() {
-    let Some(domain) = scratch_domain() else {
+    let client = client();
+    let Some(domain) = scratch_domain_on_account(&client).await else {
         println!("MXROUTE_TEST_DOMAIN is unset; skipping");
         return;
     };
-    let client = client();
 
     let dns = client.dns(&domain).get().await.expect("DNS info reads");
     assert!(!dns.mx_records.is_empty(), "no MX records reported");
@@ -184,11 +202,11 @@ async fn the_scratch_domains_settings_read_back() {
 #[tokio::test]
 #[ignore = "talks to the real API and creates a mailbox"]
 async fn a_mailbox_can_be_created_read_and_deleted() {
-    let Some(domain) = scratch_domain() else {
+    let client = client();
+    let Some(domain) = scratch_domain_on_account(&client).await else {
         println!("MXROUTE_TEST_DOMAIN is unset; skipping");
         return;
     };
-    let client = client();
     let username = "mxroute-rs-livetest";
     let accounts = client.email_accounts(&domain);
 
@@ -241,15 +259,17 @@ async fn a_mailbox_can_be_created_read_and_deleted() {
 #[tokio::test]
 #[ignore = "talks to the real API and changes account-wide spam settings"]
 async fn a_whitelist_entry_can_be_added_and_removed() {
-    let Some(domain) = scratch_domain() else {
-        println!("MXROUTE_TEST_DOMAIN is unset; skipping");
-        return;
-    };
+    // Checked before anything is fetched: this gate is the cheap one, and it is the one
+    // that stops a test from changing filtering for every domain on the account.
     if env::var("MXROUTE_TEST_SPAM").is_err() {
         println!("MXROUTE_TEST_SPAM is unset; skipping an account-wide change");
         return;
     }
     let client = client();
+    let Some(domain) = scratch_domain_on_account(&client).await else {
+        println!("MXROUTE_TEST_DOMAIN is unset; skipping");
+        return;
+    };
     let whitelist = client.spam(&domain).whitelist();
     let entry = SpamEntry::new("mxroute-rs-livetest@example.com").expect("a valid entry");
 
