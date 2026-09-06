@@ -18,14 +18,22 @@ lint:
 test:
     cargo test --all-features
 
+secretspec_reason := "mxroute-rs live API test suite"
+
 # Run the tests that talk to the real API, with credentials from secretspec.
 #
 # Configure a provider once with `secretspec config global init`, then `secretspec set`
-# each secret named in secretspec.toml. `secretspec check` reports what is still missing.
+# each secret named in secretspec.toml. `secretspec check --reason=...` reports what is
+# still missing. The reason is recorded by providers that keep an audit log, and
+# secretspec refuses to read anything without one.
 #
 # These are #[ignore]d so `just test` and CI skip them; --ignored is what opts in.
 live-test *args='':
-    secretspec run -- just live-test-inner {{args}}
+    secretspec run --reason {{quote(secretspec_reason)}} -- just live-test-inner {{args}}
+
+# Report which live-test credentials are missing from the configured provider
+secrets-check:
+    secretspec check --reason {{quote(secretspec_reason)}}
 
 # The live suite without the secretspec wrapper, for callers that supply the environment
 # themselves. CI does, because a GitHub runner has no keyring to read from.
