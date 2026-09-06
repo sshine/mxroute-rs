@@ -1,0 +1,29 @@
+# Secret scanning, run over staged files by the pre-commit hook (see nix/hooks.nix).
+#
+# The default rules are kept in full; this only adds exemptions, and each one names an
+# exact literal rather than a pattern. A rule like "ignore anything under tests/" would
+# also ignore a real key pasted there, which is one of the likelier places for it to
+# happen.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Fake mailbox passwords in tests and documentation examples"
+# Deliberately weak, and deliberately matching the API's documented password rule so the
+# examples show a password that would be accepted. No account uses them.
+regexTarget = "match"
+regexes = ['''Hunter2Hunter2''', '''Livetest1Password''']
+
+[[allowlists]]
+description = "The example API key from the MXroute documentation"
+# Reproduced from the API's own docs, where it illustrates the key format. Also the value
+# the mocked tests authenticate with, so the harness looks like a real client.
+regexTarget = "match"
+regexes = ['''Mx8d989005f0cded8371b7d7271c50K1''']
+
+[[allowlists]]
+description = "Build artifacts"
+# Not scanned by the hook, which only ever sees staged files, but `betterleaks dir .` run
+# by hand otherwise reports vendored dependencies and the crate's own copied sources.
+paths = ['''^target/''']

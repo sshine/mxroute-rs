@@ -17,6 +17,7 @@
       # Reference tools by absolute store path: the `nix flake check` hk-check sandbox
       # runs hooks without the devshell PATH, so a bare `treefmt` is not found there.
       treefmt = lib.getExe config.treefmt.build.wrapper;
+      betterleaks = lib.getExe pkgs.betterleaks;
 
       # Called by store path rather than via `cargo readme`, so the cargo-subcommand
       # argv has to be supplied by hand: without it clap only prints its usage.
@@ -35,9 +36,25 @@
         "pre-commit" = {
           fix = true;
           stash = "git";
-          steps.treefmt = {
-            check = "${treefmt} --fail-on-change --no-cache {{files}}";
-            fix = "${treefmt} {{files}}";
+          steps = {
+            treefmt = {
+              check = "${treefmt} --fail-on-change --no-cache {{files}}";
+              fix = "${treefmt} {{files}}";
+            };
+
+            # Here rather than pre-push: a secret caught before it is committed costs an
+            # amend, one caught later costs a history rewrite and a key rotation. It only
+            # ever sees the staged files, so it stays fast enough for this stage.
+            #
+            # An API key belongs in the developer's secretspec provider (see
+            # secretspec.toml); nothing in this repository should ever hold one.
+            #
+            # Spelled out rather than using the hk builtin, which passes an explicit file
+            # list: given one, betterleaks stops looking for .betterleaks.toml beside the
+            # files, and the exemptions for the fake credentials in the tests go unread.
+            betterleaks = {
+              check = "${betterleaks} dir --redact --no-banner --config .betterleaks.toml {{files}}";
+            };
           };
         };
 
