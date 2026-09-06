@@ -8,3 +8,15 @@
 //! This crate is under construction; the endpoint modules land in subsequent commits.
 
 #![warn(missing_docs)]
+
+pub mod api;
+mod client;
+mod error;
+mod ratelimit;
+
+pub use client::{
+    Client, ClientBuilder, Credentials, DEFAULT_BASE_URL, DEFAULT_USER_AGENT, MAX_RETRY_AFTER,
+    Secret,
+};
+pub use error::{ApiError, Error, ErrorCode, InvalidValue, Result};
+pub use ratelimit::{Rate, RateLimits, Scope};
