@@ -339,3 +339,93 @@ async fn a_domain_that_is_not_ours_is_a_404_rather_than_a_403() {
         err.status()
     );
 }
+
+/// A domain under our control that is deliberately never added to the account.
+///
+/// Under `shine.town` rather than `example.com` so the negative case is one we could add
+/// but have not, which is the state a caller is actually in before creating a domain.
+/// Nothing needs to exist in DNS for this: the API answers from the account, not the zone.
+const ABSENT_DOMAIN: &str = "mxtestnegative.shine.town";
+
+fn absent_domain() -> String {
+    env::var("MXROUTE_TEST_NEGATIVE_DOMAIN").unwrap_or_else(|_| ABSENT_DOMAIN.to_owned())
+}
+
+/// Every domain-scoped group, against a domain the account does not hold.
+///
+/// One test rather than nine, because each is a request and the read allowance is spent
+/// across the whole suite. Nine reads is well inside a minute's budget; nine tests each
+/// building a client and listing domains first would not be.
+///
+/// Guards two things the type system cannot: that a missing domain is reported the same
+/// way whichever group is asked, and that `get` and `try_get` disagree only in how they
+/// say so.
+#[tokio::test]
+#[ignore = "talks to the real API"]
+async fn every_group_reports_an_absent_domain_the_same_way() {
+    let client = client();
+    let absent = absent_domain();
+
+    // Fail early and loudly if the account has grown the domain this test assumes it
+    // lacks, rather than reporting a pile of confusing assertion failures below.
+    let held = client.domains().list().await.expect("the account lists");
+    assert!(
+        !held.contains(&absent),
+        "{absent} is on this account, so it cannot serve as the negative case. \
+         Point MXROUTE_TEST_NEGATIVE_DOMAIN at something absent."
+    );
+
+    let err = client
+        .domains()
+        .get(&absent)
+        .await
+        .expect_err("the domain is not on the account");
+    assert!(err.is_not_found(), "domains().get: {err}");
+
+    macro_rules! assert_not_found {
+        ($label:literal, $call:expr) => {
+            let err = $call
+                .await
+                .expect_err(concat!($label, " should not be found"));
+            assert!(err.is_not_found(), concat!($label, ": {}"), err);
+        };
+    }
+
+    assert_not_found!("dns", client.dns(&absent).get());
+    assert_not_found!("email_accounts", client.email_accounts(&absent).list());
+    assert_not_found!("forwarders", client.forwarders(&absent).list());
+    assert_not_found!("pointers", client.pointers(&absent).list());
+    assert_not_found!("catch_all", client.catch_all(&absent).get());
+    assert_not_found!("spam", client.spam(&absent).settings());
+
+    println!("{absent}: every group answered 404");
+}
+
+/// `try_get` exists so a caller can ask whether something is there without matching on an
+/// error. This is the case it was added for.
+#[tokio::test]
+#[ignore = "talks to the real API"]
+async fn try_get_maps_an_absent_domain_onto_none() {
+    let client = client();
+    let absent = absent_domain();
+
+    assert_eq!(
+        client
+            .domains()
+            .try_get(&absent)
+            .await
+            .expect("a 404 is not an error here"),
+        None
+    );
+
+    // Same for a mailbox inside a domain that does not exist: the 404 is about the
+    // domain, but it reaches the caller through the mailbox call.
+    assert_eq!(
+        client
+            .email_accounts(&absent)
+            .try_get("nobody")
+            .await
+            .expect("a 404 is not an error here"),
+        None
+    );
+}
