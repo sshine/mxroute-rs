@@ -31,5 +31,5 @@ jobs:
           MXROUTE_SERVER: ${{ secrets.MXROUTE_SERVER }}
           MXROUTE_USERNAME: ${{ secrets.MXROUTE_USERNAME }}
           MXROUTE_API_KEY: ${{ secrets.MXROUTE_API_KEY }}
-          MXROUTE_TEST_DOMAIN: ${{ vars.MXROUTE_TEST_DOMAIN }}
+          MXROUTE_TEST_DOMAIN: ${{ secrets.MXROUTE_TEST_DOMAIN }}
         run: nix develop -c just live-test
