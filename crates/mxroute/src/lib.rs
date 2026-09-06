@@ -13,6 +13,7 @@ pub mod api;
 mod client;
 mod error;
 mod ratelimit;
+mod types;
 
 pub use client::{
     Client, ClientBuilder, Credentials, DEFAULT_BASE_URL, DEFAULT_USER_AGENT, MAX_RETRY_AFTER,
@@ -20,3 +21,4 @@ pub use client::{
 };
 pub use error::{ApiError, Error, ErrorCode, InvalidValue, Result};
 pub use ratelimit::{Rate, RateLimits, Scope};
+pub use types::{Destination, MAX_SEND_LIMIT, MailboxQuota, SendLimit};
