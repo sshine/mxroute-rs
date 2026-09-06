@@ -21,4 +21,6 @@ pub use client::{
 };
 pub use error::{ApiError, Error, ErrorCode, InvalidValue, Result};
 pub use ratelimit::{Rate, RateLimits, Scope};
-pub use types::{Destination, MAX_SEND_LIMIT, MailboxQuota, SendLimit};
+pub use types::{
+    Destination, MAX_SEND_LIMIT, MAX_SPAM_ENTRY_LEN, MailboxQuota, SendLimit, SpamEntry, SpamScore,
+};

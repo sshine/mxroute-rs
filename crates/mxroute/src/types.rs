@@ -1,8 +1,9 @@
 //! Values the API constrains, modelled so the constraint is not a comment.
 //!
 //! Each of these exists because the wire form is easy to get wrong: a magic zero that
-//! means "no limit", two magic strings among otherwise ordinary email addresses, and an
-//! integer with a documented ceiling a caller would otherwise discover by being rejected.
+//! means "no limit", two magic strings among otherwise ordinary email addresses, and
+//! numbers and patterns with documented bounds a caller would otherwise discover by being
+//! rejected.
 
 use std::fmt;
 
@@ -126,6 +127,132 @@ impl TryFrom<u32> for SendLimit {
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         Self::new(value)
+    }
+}
+
+/// The score at which the spam filter treats a message as spam.
+///
+/// Documented as 1 to 50 inclusive; lower is stricter.
+///
+/// As with [`SendLimit`], deserialization trusts the server and only construction checks
+/// the range.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct SpamScore(u8);
+
+impl SpamScore {
+    /// Smallest score the API accepts, and the strictest filtering.
+    pub const MIN: u8 = 1;
+    /// Largest score the API accepts, and the most permissive filtering.
+    pub const MAX: u8 = 50;
+
+    /// Builds a score, rejecting anything outside 1 to 50.
+    pub fn new(score: u8) -> Result<Self, InvalidValue> {
+        if !(Self::MIN..=Self::MAX).contains(&score) {
+            return Err(InvalidValue::new(
+                "high_score",
+                "must be between 1 and 50",
+                score.to_string(),
+            ));
+        }
+        Ok(Self(score))
+    }
+
+    /// The score.
+    pub fn get(self) -> u8 {
+        self.0
+    }
+}
+
+impl fmt::Display for SpamScore {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl TryFrom<u8> for SpamScore {
+    type Error = InvalidValue;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
+/// Longest sender-list entry the API accepts.
+pub const MAX_SPAM_ENTRY_LEN: usize = 254;
+
+/// An address or pattern on a spam sender list.
+///
+/// The API documents both a length cap and a character set, and the entry travels in the
+/// URL path when it is removed. Checking it here means a wildcard like `*@trusted.com`
+/// is known to survive as one path segment, and that no entry can address a different
+/// resource than the one named.
+///
+/// ```
+/// use mxroute::SpamEntry;
+///
+/// assert!(SpamEntry::new("*@trusted.com").is_ok());
+/// assert!(SpamEntry::new("someone@example.com").is_ok());
+/// // A slash would invent a path segment on the way to deletion.
+/// assert!(SpamEntry::new("a/b").is_err());
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct SpamEntry(String);
+
+impl SpamEntry {
+    /// Builds an entry, rejecting anything the API's own pattern would.
+    pub fn new(entry: impl Into<String>) -> Result<Self, InvalidValue> {
+        let entry = entry.into();
+        if entry.is_empty() {
+            return Err(InvalidValue::new("entry", "must not be empty", entry));
+        }
+        if entry.len() > MAX_SPAM_ENTRY_LEN {
+            return Err(InvalidValue::new(
+                "entry",
+                "must be at most 254 characters",
+                entry,
+            ));
+        }
+        if !entry
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'@' | b'.' | b'-' | b'_' | b'*'))
+        {
+            return Err(InvalidValue::new(
+                "entry",
+                "may only contain letters, digits, and @ . - _ *",
+                entry,
+            ));
+        }
+        // The character set permits these, but `url` folds them away rather than encoding
+        // them, so a deletion would address the list itself.
+        if matches!(entry.as_str(), "." | "..") {
+            return Err(InvalidValue::new(
+                "entry",
+                "is not addressable as a path segment",
+                entry,
+            ));
+        }
+        Ok(Self(entry))
+    }
+
+    /// The entry.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for SpamEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::str::FromStr for SpamEntry {
+    type Err = InvalidValue;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s)
     }
 }
 
@@ -264,6 +391,50 @@ mod tests {
             "9600"
         );
     }
+    #[test]
+    fn a_spam_score_outside_the_documented_range_is_refused() {
+        assert!(SpamScore::new(0).is_err());
+        assert!(SpamScore::new(51).is_err());
+        for score in [1, 25, 50] {
+            assert_eq!(SpamScore::new(score).expect("in range").get(), score);
+        }
+    }
+
+    #[test]
+    fn a_wildcard_spam_entry_is_accepted() {
+        let entry = SpamEntry::new("*@trusted.com").expect("wildcards are documented");
+        assert_eq!(entry.as_str(), "*@trusted.com");
+        assert_eq!(
+            serde_json::to_string(&entry).expect("serializes"),
+            r#""*@trusted.com""#
+        );
+    }
+
+    #[test]
+    fn a_spam_entry_outside_the_documented_character_set_is_refused() {
+        for entry in ["a/b", "a b", "a+b", "a%2Fb", "ünïcode@example.com", ""] {
+            assert!(
+                SpamEntry::new(entry).is_err(),
+                "{entry:?} should be refused"
+            );
+        }
+        assert!(SpamEntry::new("a".repeat(255)).is_err());
+        assert!(SpamEntry::new("a".repeat(254)).is_ok());
+    }
+
+    #[test]
+    fn the_dot_entries_url_would_collapse_are_refused() {
+        // Both match the documented character set, and both would delete the wrong thing.
+        for entry in [".", ".."] {
+            assert!(
+                SpamEntry::new(entry).is_err(),
+                "{entry:?} should be refused"
+            );
+        }
+        // A leading dot is fine; it is only the bare forms that fold away.
+        assert!(SpamEntry::new(".trusted.com").is_ok());
+    }
+
     #[test]
     fn the_magic_destinations_are_recognized_rather_than_left_as_addresses() {
         assert_eq!(Destination::from(":blackhole:"), Destination::Blackhole);

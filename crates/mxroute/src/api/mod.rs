@@ -11,6 +11,9 @@ pub mod domains;
 pub mod email_accounts;
 pub mod forwarders;
 pub mod pointers;
+pub mod quota;
+pub mod reseller;
+pub mod spam;
 
 pub use account::AccountApi;
 pub use catch_all::CatchAllApi;
@@ -19,6 +22,9 @@ pub use domains::DomainsApi;
 pub use email_accounts::EmailAccountsApi;
 pub use forwarders::ForwardersApi;
 pub use pointers::PointersApi;
+pub use quota::QuotaApi;
+pub use reseller::ResellerApi;
+pub use spam::{SenderListApi, SpamApi};
 
 use crate::client::Client;
 
@@ -56,5 +62,20 @@ impl Client {
     /// Catch-all handling for one domain.
     pub fn catch_all<'a>(&'a self, domain: &'a str) -> CatchAllApi<'a> {
         CatchAllApi::new(self, domain)
+    }
+
+    /// Spam filtering, reached through one domain but stored per account.
+    pub fn spam<'a>(&'a self, domain: &'a str) -> SpamApi<'a> {
+        SpamApi::new(self, domain)
+    }
+
+    /// Disk usage for the account.
+    pub fn quota(&self) -> QuotaApi<'_> {
+        QuotaApi::new(self)
+    }
+
+    /// User and package management, for a reseller account.
+    pub fn reseller(&self) -> ResellerApi<'_> {
+        ResellerApi::new(self)
     }
 }
