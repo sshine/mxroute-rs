@@ -27,7 +27,10 @@ const MAX_PERIOD: Duration = Duration::from_secs(366 * 86_400);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Scope {
-    /// `GET`, documented at 100 requests per minute.
+    /// `GET`, 200 requests per minute.
+    ///
+    /// The documentation says 100. The server's own `X-RateLimit-Limit` says 200, and that
+    /// is what this crate paces against; see [`RateLimits::mxroute_defaults`].
     Read,
     /// `POST`, `PATCH` and `DELETE`, documented at 20 requests per minute.
     Write,
@@ -174,14 +177,20 @@ impl Default for RateLimits {
 }
 
 impl RateLimits {
-    /// The rates MXroute documents, as of the API version this crate targets.
+    /// The rates the server enforces, as of the API version this crate targets.
     ///
-    /// These are what the server enforces, so a client configured with them should rarely
-    /// see a `429` — only when something else shares the account.
+    /// A client configured with these should rarely see a `429` — only when something else
+    /// shares the account.
+    ///
+    /// The read rate is 200, not the 100 the documentation gives: every response carries
+    /// `X-RateLimit-Limit: 200`, and pacing at half the allowance costs throughput for no
+    /// benefit. An account held to the documented 100 is not left unprotected — the
+    /// client reads `X-RateLimit-Remaining` from every response, so an allowance running
+    /// out backs the scope off whether or not the local rate agrees.
     pub fn mxroute_defaults() -> Self {
-        // Parsing string literals keeps these readable against the documentation table;
-        // the expect cannot fire because every literal is well-formed, and a unit test
-        // below pins that.
+        // Parsing string literals keeps these comparable at a glance with what the API
+        // reports; the expect cannot fire because every literal is well-formed, and a unit
+        // test below pins that.
         #[expect(clippy::expect_used)]
         fn rate(spec: &str) -> Vec<Rate> {
             vec![spec.parse().expect("built-in rate literal is well-formed")]
@@ -189,7 +198,7 @@ impl RateLimits {
 
         Self {
             scopes: [
-                (Scope::Read, rate("100/min")),
+                (Scope::Read, rate("200/min")),
                 (Scope::Write, rate("20/min")),
             ]
             .into_iter()
@@ -501,7 +510,7 @@ mod tests {
     #[test]
     fn the_built_in_rate_literals_parse() {
         let limits = RateLimits::mxroute_defaults();
-        assert_eq!(limits.rates(Scope::Read), [rate("100/min")]);
+        assert_eq!(limits.rates(Scope::Read), [rate("200/min")]);
         assert_eq!(limits.rates(Scope::Write), [rate("20/min")]);
         assert!(!limits.is_unlimited());
     }
@@ -537,7 +546,7 @@ mod tests {
     fn removing_every_rate_for_a_scope_lifts_the_limit() {
         let limits = RateLimits::mxroute_defaults().with_scope(Scope::Write, []);
         assert!(limits.rates(Scope::Write).is_empty());
-        assert_eq!(limits.rates(Scope::Read), [rate("100/min")]);
+        assert_eq!(limits.rates(Scope::Read), [rate("200/min")]);
     }
 
     #[tokio::test(start_paused = true)]

@@ -14,7 +14,7 @@
 
 use std::env;
 
-use mxroute::{Client, Credentials, SpamEntry};
+use mxroute::{Client, Credentials, RateLimits, Scope, SpamEntry};
 
 /// Builds a client from the environment, or explains what is missing.
 ///
@@ -160,6 +160,23 @@ async fn every_response_carries_the_rate_limit_headers() {
         assert!(value.is_some(), "{header} was absent");
         println!("{header}: {value:?}");
     }
+
+    // The documented read rate is 100 and the observed one is 200, so this crate paces
+    // against the header rather than the documentation. That makes the header the thing
+    // to notice changing, and nothing else would notice: pacing too slowly costs only
+    // throughput, which no test measures.
+    let reported: u32 = response
+        .headers()
+        .get("x-ratelimit-limit")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.parse().ok())
+        .expect("the limit header is a number");
+    let paced = RateLimits::mxroute_defaults().rates(Scope::Read)[0].limit();
+    assert_eq!(
+        reported, paced,
+        "the server allows {reported} reads a minute but this client paces at {paced}; \
+         update RateLimits::mxroute_defaults"
+    );
 }
 
 #[tokio::test]

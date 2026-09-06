@@ -42,9 +42,12 @@
 //!
 //! # Rate limiting
 //!
-//! MXroute throttles reads at 100 requests a minute and writes at 20. The client enforces
+//! MXroute throttles reads at 200 requests a minute and writes at 20. The client enforces
 //! both itself, so it paces requests rather than collecting `429`s, and a `429` that does
 //! arrive is honoured via `Retry-After` and retried.
+//!
+//! The documentation says 100 for reads; the server's `X-RateLimit-Limit` says 200, and
+//! that is what this crate believes.
 //!
 //! It also reads the `X-RateLimit-*` headers on every response. The local windows only
 //! count what this client sent, so when the mxpanel or another process shares the account,
