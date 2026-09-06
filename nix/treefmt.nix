@@ -21,7 +21,12 @@
         };
         programs.mdformat.enable = true;
         programs.taplo.enable = true;
-        programs.yamlfmt.enable = true;
+        programs.yamlfmt = {
+          enable = true;
+          # Blank lines separate the sections of a workflow file, and collapsing them
+          # turns `on:`, `permissions:` and `jobs:` into one wall of keys.
+          settings.formatter.retain_line_breaks_single = true;
+        };
       };
     };
 }
