@@ -2,7 +2,7 @@ name: Live API tests
 
 # Manual only. These tests read, create and delete real mailboxes in whatever account the
 # credentials belong to, and they spend that account's rate-limit budget, so they must
-# never fire from a push or a pull request.
+# never fire automatically from a push or a pull request.
 on:
   workflow_dispatch:
 
@@ -13,31 +13,23 @@ jobs:
   live:
     runs-on: ubuntu-latest
 
-    # Serialised, because concurrent runs would share one account's rate-limit budget and
-    # each other's scratch-mailbox sweep.
+    # Disable concurrency to avoid exhausting the rate-limit budget and sharing state.
     concurrency:
       group: live-api-tests
       cancel-in-progress: false
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, 2026-07-17
-
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, 2026-07-17
       - uses: ./.github/actions/setup-nix
 
-      # A runner has no keyring, so secretspec reads the same names from the environment
-      # rather than from the provider a developer configured. One secretspec.toml drives
-      # both, so a missing secret fails the same way in both places.
-      #
-      # This calls the unwrapped recipe: `just live-test` would invoke secretspec again.
+      # A runner has no keyring, so the provider is the workflow's own environment. That
+      # is the only difference from a developer's machine: the same recipe, the same
+      # secretspec.toml, so a missing secret fails the same way in both places.
       - name: Run the live API tests
         env:
+          SECRETSPEC_PROVIDER: env
           MXROUTE_SERVER: ${{ secrets.MXROUTE_SERVER }}
           MXROUTE_USERNAME: ${{ secrets.MXROUTE_USERNAME }}
           MXROUTE_API_KEY: ${{ secrets.MXROUTE_API_KEY }}
           MXROUTE_TEST_DOMAIN: ${{ vars.MXROUTE_TEST_DOMAIN }}
-        run: |
-          nix develop -c secretspec run \
-            --provider env \
-            --reason "mxroute-rs live API tests on GitHub Actions" \
-            -- just live-test-inner
+        run: nix develop -c just live-test

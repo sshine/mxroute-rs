@@ -14,21 +14,12 @@ jobs:
   release:
     runs-on: ubuntu-latest
 
-    # One job, not a dependency on a reusable workflow, so the checks and the publish share
-    # a runner and a warm Nix store. The tree that gets published is the one just verified.
+    # Use a single job to keep the Nix store cache warm and the time spent book-keeping minimal.
     steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, 2026-07-17
-
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, 2026-07-17
       - uses: ./.github/actions/setup-nix
-
-      # The same checks main runs, packaging included.
       - uses: ./.github/actions/checks
-
-      - name: Check the tag matches the crate version
-        run: nix develop -c just check-version "${GITHUB_REF_NAME}"
-
-      - name: Publish to crates.io
+      - run: nix develop -c just check-version "${GITHUB_REF_NAME}"
+      - run: nix develop -c cargo publish --locked -p mxroute
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-        run: nix develop -c cargo publish --locked -p mxroute

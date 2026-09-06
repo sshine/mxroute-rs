@@ -20,26 +20,25 @@ test:
 
 secretspec_reason := "mxroute-rs live API test suite"
 
-# Run the tests that talk to the real API, with credentials from secretspec.
-#
 # Configure a provider once with `secretspec config global init`, then `secretspec set`
-# each secret named in secretspec.toml. `secretspec check --reason=...` reports what is
-# still missing. The reason is recorded by providers that keep an audit log, and
-# secretspec refuses to read anything without one.
+# each secret named in secretspec.toml; `just secrets-check` reports what is still
+# missing. The reason is recorded by providers that keep an audit log, and secretspec
+# refuses to read anything without one.
 #
-# These are #[ignore]d so `just test` and CI skip them; --ignored is what opts in.
+# Which provider is not decided here. Locally it is whatever the developer configured;
+# CI sets SECRETSPEC_PROVIDER=env, since a runner has no keyring but does have the
+# workflow's environment. Either way resolution goes through secretspec, so a missing
+# secret fails with the same message in both places.
+#
+# The tests are #[ignore]d so `just test` skips them; --ignored is what opts in.
+[doc("Run the tests that talk to the real API, with credentials from secretspec")]
 live-test *args='':
-    secretspec run --reason {{quote(secretspec_reason)}} -- just live-test-inner {{args}}
+    secretspec run --reason {{quote(secretspec_reason)}} -- \
+        cargo test --all-features --test live -- --ignored --nocapture --test-threads 2 {{args}}
 
 # Report which live-test credentials are missing from the configured provider
 secrets-check:
     secretspec check --reason {{quote(secretspec_reason)}}
-
-# The live suite without the secretspec wrapper, for callers that supply the environment
-# themselves. CI does, because a GitHub runner has no keyring to read from.
-[private]
-live-test-inner *args='':
-    cargo test --all-features --test live -- --ignored --nocapture --test-threads 2 {{args}}
 
 # Build release
 build:
