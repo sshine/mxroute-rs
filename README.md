@@ -160,6 +160,22 @@ Also worth knowing:
   [`DnsApi`](api::DnsApi) and offers no way to create or rotate one.
 - Anything the mxpanel does that the REST API does not, such as creating an API key.
 
+## MCP server
+
+`mxroute-mcp` serves this API to Claude Code and other MCP clients over stdio. It reads only
+until told otherwise, and takes the same three credentials as the live tests below.
+
+```bash
+nix profile install github:sshine/mxroute-rs#mxroute-mcp
+claude plugin marketplace add sshine/mxroute-rs
+claude plugin install mxroute@sshine-mxroute
+```
+
+The plugin prompts for the credentials on install and keeps the key in the OS keychain.
+Prebuilt binaries for Linux, macOS and Windows are on the [releases page]. See
+[crates/mxroute-mcp/README.md] for the tool reference and for using the server without the
+plugin.
+
 ## Development
 
 Everything runs inside `nix develop` (or `direnv allow`, which enters it for you).
@@ -201,5 +217,7 @@ gnome-keyring or KWallet running and unlocked. Any other provider works just as 
 - Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
 - MIT license ([LICENSE-MIT](LICENSE-MIT))
 
+[crates/mxroute-mcp/readme.md]: crates/mxroute-mcp/README.md
 [mxroute]: https://mxroute.com
+[releases page]: https://github.com/sshine/mxroute-rs/releases
 [secretspec]: https://secretspec.dev
