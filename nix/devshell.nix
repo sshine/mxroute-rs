@@ -20,6 +20,8 @@
           pkgs.git
           pkgs.just
           pkgs.cargo-readme
+          # `just check-version` reads the plugin manifests, which are JSON.
+          pkgs.jq
         ];
 
         env = [

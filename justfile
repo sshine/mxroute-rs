@@ -80,6 +80,15 @@ check-version version:
     if [ "$crate" != "{{version}}" ]; then \
         echo "tag {{version}} does not match crate version $crate" >&2; exit 1; \
     fi
+    @# The plugin carries the version twice more, and neither is inherited from the
+    @# workspace. The marketplace copy is what decides whether an installed plugin is
+    @# offered an update at all, so forgetting it means users silently never get one.
+    @for f in plugin/.claude-plugin/plugin.json .claude-plugin/marketplace.json; do \
+        found="v$(jq -r '.version // .plugins[0].version' "$f")"; \
+        if [ "$found" != "{{version}}" ]; then \
+            echo "tag {{version}} does not match $f version $found" >&2; exit 1; \
+        fi; \
+    done
 
 # Run CI checks locally
 ci: fmt-check lint test doc readme-check build
