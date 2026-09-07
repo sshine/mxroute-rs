@@ -303,6 +303,153 @@ pub struct SpamSender {
     pub sender: String,
 }
 
+/// The reseller's users, or one of them.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+pub struct ListResellerUsers {
+    /// One username. Given, only that user is returned.
+    #[serde(default)]
+    #[schemars(length(min = 1, max = 10))]
+    pub username: Option<String>,
+}
+
+/// The reseller's packages, or one of them.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+pub struct ListResellerPackages {
+    /// One package name. Given, only that package is returned.
+    #[serde(default)]
+    #[schemars(length(min = 1, max = 64))]
+    pub name: Option<String>,
+}
+
+/// A user to create under the reseller account.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+pub struct CreateResellerUser {
+    /// Username, one to ten characters of lowercase letters, digits and underscores. It
+    /// cannot be changed afterwards.
+    #[schemars(length(min = 1, max = 10), regex(pattern = r"^[a-z0-9_]+$"))]
+    pub username: String,
+
+    /// Contact address for the user.
+    #[schemars(length(min = 3, max = 254))]
+    pub email: String,
+
+    /// The user's password. MXroute requires at least eight characters.
+    #[schemars(length(min = 8, max = 128))]
+    pub password: String,
+
+    /// Name of an existing package, which sets the user's limits.
+    #[schemars(length(min = 1, max = 64))]
+    pub package: String,
+}
+
+/// Changes to an existing reseller user.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+pub struct UpdateResellerUser {
+    /// The user to change.
+    #[schemars(length(min = 1, max = 10))]
+    pub username: String,
+
+    /// A new password. Omitted, the current one stands.
+    #[schemars(length(min = 8, max = 128))]
+    pub password: Option<String>,
+
+    /// A new storage allowance in megabytes, unlike a package's, which is in gigabytes.
+    pub quota_mb: Option<u64>,
+
+    /// True to lift the user's storage limit entirely. Overrides quota_mb.
+    pub quota_unlimited: Option<bool>,
+}
+
+/// One reseller user, by name.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+pub struct ResellerUser {
+    /// The user to address.
+    #[schemars(length(min = 1, max = 10))]
+    pub username: String,
+}
+
+/// A reseller user to remove, named twice.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+pub struct DeleteResellerUser {
+    /// The user to remove.
+    #[schemars(length(min = 1, max = 10))]
+    pub username: String,
+
+    /// The same username again, spelled exactly as above.
+    #[schemars(length(min = 1, max = 10))]
+    pub confirm_username: String,
+}
+
+/// Whether a reseller user is suspended.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+pub struct SuspendResellerUser {
+    /// The user to change.
+    #[schemars(length(min = 1, max = 10))]
+    pub username: String,
+
+    /// True to suspend the user, false to let them back in.
+    pub suspended: bool,
+}
+
+/// A reseller user's package.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+pub struct SetResellerUserPackage {
+    /// The user to change.
+    #[schemars(length(min = 1, max = 10))]
+    pub username: String,
+
+    /// Name of an existing package to move them onto.
+    #[schemars(length(min = 1, max = 64))]
+    pub package: String,
+}
+
+/// The limits a package grants.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+pub struct ResellerPackage {
+    /// Package name.
+    #[schemars(length(min = 1, max = 64))]
+    pub name: String,
+
+    /// Storage allowance in gigabytes, unlike a user's, which is in megabytes. Omitted on
+    /// an update, the current value stands.
+    pub quota_gb: Option<f64>,
+
+    /// True for no storage limit. Overrides quota_gb.
+    pub quota_unlimited: Option<bool>,
+
+    /// How many domains the package allows. Null for no limit.
+    pub domains: Option<u32>,
+
+    /// True for no limit on domains. Overrides domains.
+    pub domains_unlimited: Option<bool>,
+
+    /// How many mailboxes the package allows. Null for no limit.
+    pub email_accounts: Option<u32>,
+
+    /// True for no limit on mailboxes. Overrides email_accounts.
+    pub email_accounts_unlimited: Option<bool>,
+
+    /// How many forwarders the package allows. Null for no limit.
+    pub email_forwarders: Option<u32>,
+
+    /// True for no limit on forwarders. Overrides email_forwarders.
+    pub email_forwarders_unlimited: Option<bool>,
+
+    /// How many domain pointers the package allows. Null for no limit.
+    pub domain_pointers: Option<u32>,
+
+    /// True for no limit on domain pointers. Overrides domain_pointers.
+    pub domain_pointers_unlimited: Option<bool>,
+}
+
+/// A package to remove.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+pub struct DeleteResellerPackage {
+    /// Package name.
+    #[schemars(length(min = 1, max = 64))]
+    pub name: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

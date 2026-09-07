@@ -34,6 +34,28 @@ const WRITES: [&str; 14] = [
     "mxroute_update_mailbox",
 ];
 
+const RESELLER_READS: [&str; 2] = [
+    "mxroute_list_reseller_packages",
+    "mxroute_list_reseller_users",
+];
+
+const RESELLER_WRITES: [&str; 8] = [
+    "mxroute_create_reseller_package",
+    "mxroute_create_reseller_user",
+    "mxroute_delete_reseller_package",
+    "mxroute_delete_reseller_user",
+    "mxroute_set_reseller_user_package",
+    "mxroute_set_reseller_user_suspended",
+    "mxroute_update_reseller_package",
+    "mxroute_update_reseller_user",
+];
+
+fn sorted<'a>(groups: &[&[&'a str]]) -> Vec<&'a str> {
+    let mut names: Vec<&str> = groups.iter().flat_map(|g| g.iter().copied()).collect();
+    names.sort_unstable();
+    names
+}
+
 async fn served(mode: Mode) -> Vec<String> {
     let h = serve(mode).await;
     let mut names: Vec<String> = h.tools().await.into_iter().map(|t| t.name.into()).collect();
@@ -48,13 +70,32 @@ async fn the_default_mode_serves_only_the_tools_that_read() {
 
 #[tokio::test]
 async fn allowing_writes_adds_exactly_the_tools_that_write() {
-    let mut expected: Vec<&str> = READS.iter().chain(WRITES.iter()).copied().collect();
-    expected.sort_unstable();
-
     let mode = Mode {
         writes: true,
         reseller: false,
     };
+    assert_eq!(served(mode).await, sorted(&[&READS, &WRITES]));
+}
+
+#[tokio::test]
+async fn the_reseller_flag_alone_adds_only_the_reseller_tools_that_read() {
+    // The two toggles are independent: asking for reseller without asking for writes must
+    // not smuggle the reseller writes in with it.
+    let mode = Mode {
+        writes: false,
+        reseller: true,
+    };
+    assert_eq!(served(mode).await, sorted(&[&READS, &RESELLER_READS]));
+}
+
+#[tokio::test]
+async fn both_flags_serve_the_whole_surface() {
+    let mode = Mode {
+        writes: true,
+        reseller: true,
+    };
+    let expected = sorted(&[&READS, &WRITES, &RESELLER_READS, &RESELLER_WRITES]);
+    assert_eq!(expected.len(), 32);
     assert_eq!(served(mode).await, expected);
 }
 

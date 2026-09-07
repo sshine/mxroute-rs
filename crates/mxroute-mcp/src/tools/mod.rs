@@ -12,4 +12,5 @@ pub mod domains;
 pub mod forwarders;
 pub mod mailboxes;
 pub mod quota;
+pub mod reseller;
 pub mod spam;

@@ -54,6 +54,13 @@ impl MxrouteServer {
             router.merge(Self::spam_write_router());
         }
 
+        if mode.reseller {
+            router.merge(Self::reseller_read_router());
+            if mode.writes {
+                router.merge(Self::reseller_write_router());
+            }
+        }
+
         router
     }
 }
