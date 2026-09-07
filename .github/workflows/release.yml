@@ -20,6 +20,20 @@ jobs:
       - uses: ./.github/actions/setup-nix
       - uses: ./.github/actions/checks
       - run: nix develop -c just check-version "${GITHUB_REF_NAME}"
+
+      # One tag releases both crates, because they inherit one workspace version. Only the
+      # library goes to the registry for now; the server is reached through the flake.
       - run: nix develop -c cargo publish --locked -p mxroute
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+
+      # Off rather than commented out: a commented block is not indented by the formatter,
+      # so it drifts to the wrong level and is invalid the day someone uncomments it.
+      #
+      # Turning it on needs the server manifest's `publish = false` dropped too. It has to
+      # stay after the library, because the registry must be able to resolve the `mxroute`
+      # version it depends on — the one the step above just uploaded.
+      - if: false
+        run: nix develop -c cargo publish --locked -p mxroute-mcp
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
