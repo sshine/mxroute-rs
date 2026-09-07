@@ -3,14 +3,21 @@
 # Taking `pkgs` as an argument (rather than closing over this flake's own) is what
 # lets the overlay build against the consumer's nixpkgs, so downstream can override
 # and cross-compile it.
+#
+# `crate` selects the workspace member. The description and the binary come from that
+# member's own manifest, so adding a third member needs nothing here.
 {
   lib,
   rustPlatform,
   cacert,
+  crate ? "mxroute",
   ...
 }:
+let
+  manifest = lib.importTOML (../crates + "/${crate}/Cargo.toml");
+in
 rustPlatform.buildRustPackage {
-  pname = "mxroute";
+  pname = crate;
   # Read rather than repeated: a release bumps one place, and this cannot fall behind it.
   version = (lib.importTOML ../Cargo.toml).workspace.package.version;
 
@@ -35,14 +42,25 @@ rustPlatform.buildRustPackage {
 
   cargoBuildFlags = [
     "--package"
-    "mxroute"
+    crate
+  ];
+
+  # Without this the check phase runs the whole workspace's tests, so each package's
+  # check would fail on a bug in the other one.
+  cargoTestFlags = [
+    "--package"
+    crate
   ];
 
   meta = {
-    description = "MXroute email hosting API client library";
+    inherit (manifest.package) description;
     license = with lib.licenses; [
       mit
       asl20
     ];
+  }
+  # The library installs no binary, so only the server gets a mainProgram for `nix run`.
+  // lib.optionalAttrs (crate == "mxroute-mcp") {
+    mainProgram = crate;
   };
 }

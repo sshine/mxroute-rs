@@ -79,7 +79,7 @@ fn message(err: &Error, subject: Subject<'_>) -> String {
 
     if err.is_rate_limited() {
         return "MXroute is throttling this account and the client has already paced itself \
-                and retried. Reads are capped at 100 a minute and writes at 20; the same call \
+                and retried. Reads are capped at 200 a minute and writes at 20; the same call \
                 should succeed in about a minute."
             .to_owned();
     }

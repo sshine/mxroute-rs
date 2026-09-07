@@ -85,7 +85,7 @@ fn instructions(mode: Mode) -> String {
     let mut text = String::from(
         "This server talks to one MXroute mail server, named by MXROUTE_SERVER. Domains, \
          mailboxes, forwarders and pointers are scoped to a domain; spam sender lists and \
-         quota are account-wide. MXroute allows 100 reads and 20 writes a minute and the \
+         quota are account-wide. MXroute allows 200 reads and 20 writes a minute and the \
          client paces itself against both, so a run of writes takes proportionally longer. \
          Quota figures are recomputed hourly, so a mailbox emptied minutes ago still reports \
          its old size.",
