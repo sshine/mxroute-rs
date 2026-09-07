@@ -5,6 +5,8 @@ use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::model::{Implementation, ServerCapabilities, ServerInfo};
 use rmcp::tool_handler;
 
+use crate::render::OutputLimits;
+
 /// Which groups of tools to serve.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Mode {
@@ -14,31 +16,11 @@ pub struct Mode {
     pub reseller: bool,
 }
 
-/// How much one tool may return.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct OutputLimits {
-    /// Rows a listing returns before it truncates.
-    pub max_items: usize,
-    /// Bytes a response body may reach before it truncates.
-    pub max_bytes: usize,
-}
-
-impl Default for OutputLimits {
-    fn default() -> Self {
-        Self {
-            max_items: 100,
-            max_bytes: 100_000,
-        }
-    }
-}
-
 /// One MXroute account, served over MCP.
 #[derive(Debug, Clone)]
 pub struct MxrouteServer {
-    #[allow(dead_code, reason = "the tools that use it arrive in the next commit")]
-    client: mxroute::Client,
-    #[allow(dead_code, reason = "the tools that use it arrive in the next commit")]
-    limits: OutputLimits,
+    pub(crate) client: mxroute::Client,
+    pub(crate) limits: OutputLimits,
     mode: Mode,
     tool_router: ToolRouter<Self>,
 }
@@ -58,7 +40,12 @@ impl MxrouteServer {
     /// Composed rather than filtered: a tool that was never built cannot be reached by name
     /// either, so what `list_all` reports is exactly what can be called.
     pub fn router(_mode: Mode) -> ToolRouter<Self> {
-        ToolRouter::new()
+        let mut router = Self::domains_read_router();
+        router.merge(Self::mailboxes_read_router());
+        router.merge(Self::forwarders_read_router());
+        router.merge(Self::spam_read_router());
+        router.merge(Self::quota_read_router());
+        router
     }
 }
 

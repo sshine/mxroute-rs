@@ -8,7 +8,8 @@ use clap::Parser;
 use mxroute::{Client, Credentials};
 use tracing_subscriber::EnvFilter;
 
-use crate::server::{Mode, OutputLimits};
+use crate::render::OutputLimits;
+use crate::server::Mode;
 
 /// Serve the MXroute API to an MCP client over stdio.
 #[derive(Debug, Parser)]

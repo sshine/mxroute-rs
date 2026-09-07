@@ -1,16 +1,13 @@
 //! An MCP server over the MXroute API, speaking JSON-RPC on stdin and stdout.
 
-mod cli;
-mod server;
-
 use std::process::ExitCode;
 
 use clap::Parser as _;
 use rmcp::ServiceExt as _;
 use rmcp::transport::stdio;
 
-use crate::cli::{Args, StartupError};
-use crate::server::MxrouteServer;
+use mxroute_mcp::cli::{self, Args, StartupError};
+use mxroute_mcp::server::MxrouteServer;
 
 #[tokio::main]
 async fn main() -> ExitCode {
