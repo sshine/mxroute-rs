@@ -1,0 +1,36 @@
+[package]
+name = "mxroute-mcp"
+version.workspace = true
+edition.workspace = true
+# Not inherited: rmcp needs 1.88, and raising the workspace floor would raise the
+# library's too, for a dependency the library does not have.
+rust-version = "1.88"
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "MCP server for the MXroute email hosting API"
+readme = "README.md"
+keywords = ["mxroute", "mcp", "email", "directadmin"]
+categories = ["command-line-utilities", "email"]
+# Distributed as a binary through GitHub releases and the flake, not through the registry.
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+clap = { workspace = true, features = ["derive", "env", "wrap_help"] }
+mxroute = { workspace = true }
+rmcp = { workspace = true, features = ["transport-io"] }
+schemars = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+
+[dev-dependencies]
+rmcp = { workspace = true, features = ["client"] }
+tokio = { workspace = true, features = ["io-util", "test-util"] }
+wiremock = { workspace = true }
