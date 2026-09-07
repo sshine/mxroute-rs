@@ -39,12 +39,21 @@ impl MxrouteServer {
     ///
     /// Composed rather than filtered: a tool that was never built cannot be reached by name
     /// either, so what `list_all` reports is exactly what can be called.
-    pub fn router(_mode: Mode) -> ToolRouter<Self> {
+    pub fn router(mode: Mode) -> ToolRouter<Self> {
         let mut router = Self::domains_read_router();
         router.merge(Self::mailboxes_read_router());
         router.merge(Self::forwarders_read_router());
         router.merge(Self::spam_read_router());
         router.merge(Self::quota_read_router());
+
+        if mode.writes {
+            router.merge(Self::domains_write_router());
+            router.merge(Self::mailboxes_write_router());
+            router.merge(Self::forwarders_write_router());
+            router.merge(Self::catch_all_write_router());
+            router.merge(Self::spam_write_router());
+        }
+
         router
     }
 }

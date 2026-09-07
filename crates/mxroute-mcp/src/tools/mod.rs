@@ -7,6 +7,7 @@
 //!
 //! [`MxrouteServer::router`]: crate::server::MxrouteServer::router
 
+pub mod catch_all;
 pub mod domains;
 pub mod forwarders;
 pub mod mailboxes;

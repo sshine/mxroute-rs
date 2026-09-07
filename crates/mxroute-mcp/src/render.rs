@@ -30,6 +30,19 @@ pub fn json<T: Serialize>(value: &T) -> CallToolResult {
     }
 }
 
+/// A successful result carrying a sentence and nothing else.
+///
+/// The write endpoints answer with an empty body, so a caller that has just created
+/// something has nothing to name it by. Saying it here is what a follow-up call needs.
+pub fn confirmation(text: impl Into<String>) -> CallToolResult {
+    CallToolResult::success(vec![ContentBlock::text(text)])
+}
+
+/// A caller's own argument was wrong, so no request was worth making.
+pub fn rejected(text: impl Into<String>) -> CallToolResult {
+    CallToolResult::error(vec![ContentBlock::text(text)])
+}
+
 /// A listing, with enough of a header to tell a short answer from a truncated one.
 ///
 /// Truncation is reported rather than silent, because a caller that reads 100 of 900

@@ -180,7 +180,7 @@ async fn a_missing_domain_points_at_the_tool_that_lists_them() {
     let text = h
         .error("mxroute_get_domain", json!({"domain": "gone.example"}))
         .await;
-    assert!(text.contains("no domain gone.example"), "{text}");
+    assert!(text.contains("no record of domain gone.example"), "{text}");
     assert!(text.contains("mxroute_list_domains"), "{text}");
 }
 

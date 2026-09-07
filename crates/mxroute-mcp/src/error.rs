@@ -8,6 +8,9 @@ use mxroute::Error;
 use rmcp::model::{CallToolResult, ContentBlock};
 
 /// What the call was addressing, so the message can name it.
+///
+/// The templates below never prepend an article, because some subjects are bare nouns
+/// (`domain example.com`) and others are not (`the catch-all for example.com`).
 #[derive(Debug, Clone, Copy)]
 pub struct Subject<'a> {
     /// What was addressed, such as `mailbox sales@example.com`.
@@ -43,7 +46,7 @@ fn message(err: &Error, subject: Subject<'_>) -> String {
     };
 
     if err.is_not_found() {
-        return try_lister(format!("There is no {what} on this account."));
+        return try_lister(format!("MXroute has no record of {what} on this account."));
     }
 
     if err.is_unauthorized() {
@@ -71,15 +74,14 @@ fn message(err: &Error, subject: Subject<'_>) -> String {
     }
 
     if err.is_conflict() {
-        return try_lister(format!("There is already a {what}."));
+        return try_lister(format!("MXroute already has {what}."));
     }
 
     if err.is_rate_limited() {
-        return format!(
-            "MXroute is throttling this account and the client has already paced itself and \
-             retried. Reads are capped at 100 a minute and writes at 20; {what} should \
-             answer in about a minute."
-        );
+        return "MXroute is throttling this account and the client has already paced itself \
+                and retried. Reads are capped at 100 a minute and writes at 20; the same call \
+                should succeed in about a minute."
+            .to_owned();
     }
 
     if err.is_busy() {
