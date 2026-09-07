@@ -19,7 +19,14 @@
           enable = true;
           package = rust-toolchain;
         };
-        programs.mdformat.enable = true;
+        programs.mdformat = {
+          enable = true;
+          # A SKILL.md opens with YAML frontmatter, which mdformat does not recognise: it
+          # reads the leading `---` as a thematic break, rewrites it, and escapes the
+          # underscores in the tool names below it. The result is a file Claude Code reads
+          # as having no frontmatter at all.
+          excludes = [ "plugin/skills/*/SKILL.md" ];
+        };
         programs.taplo.enable = true;
         programs.yamlfmt = {
           enable = true;
