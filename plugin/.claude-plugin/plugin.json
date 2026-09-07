@@ -1,0 +1,46 @@
+{
+  "name": "mxroute",
+  "description": "Manage MXroute email hosting: domains, mailboxes, forwarders, spam filtering, DNS and quota. Needs the mxroute-mcp binary on PATH; install it from https://github.com/sshine/mxroute-rs/releases or with nix profile install github:sshine/mxroute-rs#mxroute-mcp.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Simon Shine",
+    "url": "https://github.com/sshine"
+  },
+  "homepage": "https://github.com/sshine/mxroute-rs/tree/main/crates/mxroute-mcp",
+  "repository": "https://github.com/sshine/mxroute-rs",
+  "license": "MIT OR Apache-2.0",
+  "keywords": ["mxroute", "email", "directadmin", "dns", "mcp"],
+  "userConfig": {
+    "server": {
+      "type": "string",
+      "title": "Mail server hostname",
+      "description": "The MXroute server the account lives on, such as eagle.mxlogin.com.",
+      "required": true
+    },
+    "username": {
+      "type": "string",
+      "title": "DirectAdmin username",
+      "description": "The username shown on panel.mxroute.com.",
+      "required": true
+    },
+    "api_key": {
+      "type": "string",
+      "title": "API key",
+      "description": "Create one at https://panel.mxroute.com/api-keys.php. Stored in the OS keychain, not in a settings file.",
+      "sensitive": true,
+      "required": true
+    },
+    "allow_writes": {
+      "type": "boolean",
+      "title": "Allow changes",
+      "description": "Off, only the tools that read anything are served. On, adds the tools that create, change and delete domains, mailboxes, forwarders and spam entries.",
+      "default": false
+    },
+    "reseller": {
+      "type": "boolean",
+      "title": "Reseller account",
+      "description": "On, adds the tools for managing reseller users and packages. These endpoints exist only on a reseller account.",
+      "default": false
+    }
+  }
+}

@@ -40,6 +40,22 @@ live-test *args='':
 secrets-check:
     secretspec check --reason {{quote(secretspec_reason)}}
 
+# Run the MCP server over stdio, with credentials from secretspec
+mcp *args='':
+    secretspec run --reason {{quote(secretspec_reason)}} -- \
+        cargo run --quiet -p mxroute-mcp -- {{args}}
+
+# Print the MCP tool schemas, which needs no credentials
+mcp-tools *args='':
+    cargo run --quiet -p mxroute-mcp -- --list-tools {{args}}
+
+# Validate the plugin and marketplace manifests
+#
+# Kept out of `just ci`: claude is not in the devshell, so CI has no way to run it.
+plugin-check:
+    claude plugin validate ./plugin --strict
+    claude plugin validate . --strict
+
 # Build release
 build:
     cargo build --release --all-features

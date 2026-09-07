@@ -1,0 +1,20 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "sshine-mxroute",
+  "description": "The MXroute MCP server, packaged as a Claude Code plugin.",
+  "owner": {
+    "name": "Simon Shine",
+    "url": "https://github.com/sshine"
+  },
+  "plugins": [
+    {
+      "name": "mxroute",
+      "source": "./plugin",
+      "description": "Manage MXroute email hosting through the mxroute-mcp server: domains, mailboxes, forwarders, spam filtering, DNS and quota.",
+      "version": "0.1.0",
+      "license": "MIT OR Apache-2.0",
+      "homepage": "https://github.com/sshine/mxroute-rs/tree/main/crates/mxroute-mcp",
+      "keywords": ["mxroute", "email", "directadmin", "dns"]
+    }
+  ]
+}

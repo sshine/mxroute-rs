@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "mxroute": {
+      "command": "mxroute-mcp",
+      "env": {
+        "MXROUTE_SERVER": "${user_config.server}",
+        "MXROUTE_USERNAME": "${user_config.username}",
+        "MXROUTE_API_KEY": "${user_config.api_key}",
+        "MXROUTE_MCP_ALLOW_WRITES": "${user_config.allow_writes}",
+        "MXROUTE_MCP_RESELLER": "${user_config.reseller}"
+      }
+    }
+  }
+}
