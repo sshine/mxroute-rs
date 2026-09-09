@@ -80,6 +80,13 @@ check-version version:
     if [ "$crate" != "{{version}}" ]; then \
         echo "tag {{version}} does not match crate version $crate" >&2; exit 1; \
     fi
+    @# The workspace dependency on the library names the version too, and cannot inherit
+    @# it. Left behind it would resolve against an older release from the registry rather
+    @# than the sources beside it, which packaging would accept without complaint.
+    @dep="v$(grep -oP '(?<=^mxroute = \{ version = ")[^"]+' Cargo.toml)"; \
+    if [ "$dep" != "{{version}}" ]; then \
+        echo "tag {{version}} does not match the workspace mxroute dependency $dep" >&2; exit 1; \
+    fi
     @# The plugin carries the version twice more, and neither is inherited from the
     @# workspace. The marketplace copy is what decides whether an installed plugin is
     @# offered an update at all, so forgetting it means users silently never get one.
@@ -90,8 +97,23 @@ check-version version:
         fi; \
     done
 
+# Verify Cargo.lock is in step with the manifests
+lock-check:
+    cargo metadata --locked --format-version 1 > /dev/null
+
+# Verify every member packages cleanly, the unpublished ones included
+#
+# `cargo package` checks manifests that `cargo build` never looks at, so this is the only
+# step that catches a dependency missing the version requirement publishing needs.
+#
+# --allow-dirty because otherwise this refuses to run with uncommitted work, which would
+# make `just ci` useful only after committing. CI checks out clean, so it packages the
+# same tree either way; the flag only stops the refusal.
+package-check:
+    cargo package --locked --workspace --allow-dirty
+
 # Run CI checks locally
-ci: fmt-check lint test doc readme-check build
+ci: fmt-check lint test doc readme-check build lock-check package-check
     @echo "All CI checks passed!"
 
 # Clean build artifacts

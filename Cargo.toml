@@ -13,9 +13,10 @@ homepage = "https://github.com/sshine/mxroute-rs"
 # Versions live here and the crates inherit them; feature sets stay with the crate that
 # needs them, since those are what differ between members.
 [workspace.dependencies]
-# No version requirement: the only consumer is not published, so a path is the whole
-# story and a release does not have to bump this too.
-mxroute = { path = "crates/mxroute" }
+# The version is required even though the only consumer sets publish = false: `cargo
+# package --workspace` verifies every member's manifest, unpublished ones included, and
+# rejects a dependency without one. `just check-version` keeps it level with the tag.
+mxroute = { version = "0.1.0", path = "crates/mxroute" }
 
 chrono = { version = "0.4.45", default-features = false }
 clap = "4.5.51"

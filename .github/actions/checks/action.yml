@@ -35,12 +35,14 @@ runs:
       shell: bash
       run: nix develop -c just readme-check
 
+    # Both go through just, like every step above, so that `just ci` runs exactly what CI
+    # does. Spelled out here, they were the two checks a local run did not have.
     - name: Lockfile check
       shell: bash
-      run: nix develop -c cargo metadata --locked --format-version 1 > /dev/null
+      run: nix develop -c just lock-check
 
     # Ahead of any publish, so a manifest or include/exclude mistake surfaces while it is
     # still reversible.
     - name: Package check
       shell: bash
-      run: nix develop -c cargo package --locked --workspace
+      run: nix develop -c just package-check
