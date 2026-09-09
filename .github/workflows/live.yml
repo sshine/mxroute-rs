@@ -1,8 +1,5 @@
 name: Live API tests
 
-# Manual only. These tests read, create and delete real mailboxes in whatever account the
-# credentials belong to, and they spend that account's rate-limit budget, so they must
-# never fire automatically from a push or a pull request.
 on:
   workflow_dispatch:
 
@@ -22,9 +19,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, 2026-07-17
       - uses: ./.github/actions/setup-nix
 
-      # A runner has no keyring, so the provider is the workflow's own environment. That
-      # is the only difference from a developer's machine: the same recipe, the same
-      # secretspec.toml, so a missing secret fails the same way in both places.
+      - name: Build the live API tests
+        run: nix develop -c cargo test --all-features --test live --no-run
+
       - name: Run the live API tests
         env:
           SECRETSPEC_PROVIDER: env
