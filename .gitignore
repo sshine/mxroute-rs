@@ -22,4 +22,8 @@ Thumbs.db
 .*.swp
 
 # Agentic
-.claude/
+#
+# Skills are shared: they are how someone opening this repository learns what the MCP
+# server is for. Everything else under .claude/ is one machine's local state.
+.claude/*
+!.claude/skills/

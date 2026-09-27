@@ -25,7 +25,13 @@
           # reads the leading `---` as a thematic break, rewrites it, and escapes the
           # underscores in the tool names below it. The result is a file Claude Code reads
           # as having no frontmatter at all.
-          excludes = [ "plugin/skills/*/SKILL.md" ];
+          # Both skill trees: the one the plugin ships and the one this repository uses
+          # on itself. A pattern matching either would have to be a glob mdformat and
+          # treefmt agree on, and naming them is shorter than finding out.
+          excludes = [
+            "plugin/skills/*/SKILL.md"
+            ".claude/skills/*/SKILL.md"
+          ];
         };
         programs.taplo.enable = true;
         programs.yamlfmt = {
